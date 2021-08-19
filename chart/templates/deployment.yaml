@@ -21,35 +21,37 @@ spec:
       annotations:
 {{- if .Values.podAnnotations }}
 {{ toYaml .Values.podAnnotations | indent 8 }}
-{{- end }}        
+{{- end }}
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
         - name: {{ .Chart.Name }}
+          securityContext:
+            capabilities:
+              drop:
+                - all
+            readOnlyRootFilesystem: true
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+          - secretRef:
+              name: {{ .Values.existingSecret }}
           env:
           - name: KAFKA_BROKERCONNECT
             value: "{{ .Values.kafka.brokerConnect }}"
-          - name: KAFKA_PROPERTIES
-            value: "{{ .Values.kafka.properties }}"
-          - name: KAFKA_TRUSTSTORE
-            value: "{{ .Values.kafka.truststore }}"
-          - name: KAFKA_KEYSTORE
-            value: "{{ .Values.kafka.keystore }}"
           - name: JVM_OPTS
             value: "{{ .Values.jvm.opts }}"
           - name: JMX_PORT
             value: "{{ .Values.jmx.port }}"
           - name: HOST
-            value: "{{ .Values.host }}"
+            value: "{{ .Values.jmx.host }}"
           - name: SERVER_SERVLET_CONTEXTPATH
             value: "{{ .Values.server.servlet.contextPath | trimSuffix "/" }}"
-          - name: KAFKA_PROPERTIES_FILE
-            value: "{{ .Values.kafka.propertiesFile }}"
-          - name: KAFKA_TRUSTSTORE_FILE
-            value: "{{ .Values.kafka.truststoreFile }}"
-          - name: KAFKA_KEYSTORE_FILE
-            value: "{{ .Values.kafka.keystoreFile }}"
           - name: SERVER_PORT
             value: "{{ .Values.server.port }}"
           - name: CMD_ARGS
@@ -58,7 +60,6 @@ spec:
 {{- else }}
             value: "{{ .Values.cmdArgs }}"
 {{- end }}
-
           ports:
             - name: http
               containerPort: 9000
@@ -101,5 +102,3 @@ spec:
             path: {{ .Values.mountProtoDesc.hostPath }}
             type: Directory
 {{- end }}
-
-
